@@ -11,10 +11,14 @@ from langgraph.graph import StateGraph
 from langgraph.prebuilt import ToolNode
 from langgraph.runtime import Runtime
 
+from strengths_agent.analysis_tools import ANALYSIS_TOOLS
 from strengths_agent.context import Context
 from strengths_agent.state import InputState, State
-from strengths_agent.tools import TOOLS
+from strengths_agent.tools import TOOLS as DB_TOOLS
 from strengths_agent.utils import load_chat_model
+
+# Combine all tools for model binding
+ALL_TOOLS = DB_TOOLS + ANALYSIS_TOOLS
 
 # Define the function that calls the model
 
@@ -34,7 +38,7 @@ async def strengths_agent(
         dict: A dictionary containing the model's response message.
     """
     # Initialize the model with tool binding. Change the model or add more tools here.
-    model = load_chat_model(runtime.context.model).bind_tools(TOOLS)
+    model = load_chat_model(runtime.context.model).bind_tools(ALL_TOOLS)
 
     # Format the system prompt. Customize this to change the agent's behavior.
     system_message = runtime.context.system_prompt.format(
@@ -68,25 +72,27 @@ async def strengths_agent(
 
 builder = StateGraph(State, input_schema=InputState, context_schema=Context)
 
-# Define the two nodes we will cycle between
+# Define the nodes: one for the agent, and separate nodes for each tool type
 builder.add_node(strengths_agent)
-builder.add_node("db_tools", ToolNode(TOOLS))
+builder.add_node("db_tools", ToolNode(DB_TOOLS))
+builder.add_node("analysis_tools", ToolNode(ANALYSIS_TOOLS))
 
 # Set the entrypoint as `strengths_agent`
 # This means that this node is the first one called
 builder.add_edge("__start__", "strengths_agent")
 
 
-def route_model_output(state: State) -> Literal["__end__", "db_tools"]:
+def route_model_output(state: State) -> Literal["__end__", "db_tools", "analysis_tools"]:
     """Determine the next node based on the model's output.
 
-    This function checks if the model's last message contains tool calls.
+    This function checks if the model's last message contains tool calls and
+    routes to the appropriate tool node based on which tools are being called.
 
     Args:
         state (State): The current state of the conversation.
 
     Returns:
-        str: The name of the next node to call ("__end__" or "db_tools").
+        str: The name of the next node to call ("__end__", "db_tools", or "analysis_tools").
     """
     last_message = state.messages[-1]
     if not isinstance(last_message, AIMessage):
@@ -96,7 +102,19 @@ def route_model_output(state: State) -> Literal["__end__", "db_tools"]:
     # If there is no tool call, then we finish
     if not last_message.tool_calls:
         return "__end__"
-    # Otherwise we execute the requested actions
+    
+    # Check which tools are being called to route to the correct node
+    tool_names = {tool_call["name"] for tool_call in last_message.tool_calls}
+    
+    # Get the names of tools in each category
+    db_tool_names = {tool.__name__ for tool in DB_TOOLS}
+    analysis_tool_names = {tool.__name__ for tool in ANALYSIS_TOOLS}
+    
+    # Route to analysis_tools if any analysis tool is called
+    if tool_names & analysis_tool_names:
+        return "analysis_tools"
+    
+    # Otherwise route to db_tools (default for backwards compatibility)
     return "db_tools"
 
 
@@ -108,9 +126,10 @@ builder.add_conditional_edges(
     route_model_output,
 )
 
-# Add a normal edge from `db_tools` to `strengths_agent`
+# Add edges from tool nodes back to the agent
 # This creates a cycle: after using tools, we always return to the model
 builder.add_edge("db_tools", "strengths_agent")
+builder.add_edge("analysis_tools", "strengths_agent")
 
 # Compile the builder into an executable graph
 graph = builder.compile(name="CliftonStrengths Agent")

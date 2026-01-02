@@ -27,9 +27,7 @@ def store_profile(
         strengths: List of all 34 CliftonStrengths in ranked order (1-34)
 
     Returns:
-        A dictionary containing:
-        - success: Boolean indicating if the operation was successful
-        - message: Description of the result
+        Dictionary with success status and message.
     """
     db = get_db_client()
     return db.store_profile(first_name, last_name, email_address, strengths)
@@ -48,15 +46,7 @@ def get_profile(first_name: str, last_name: str) -> Dict[str, Any]:
         last_name: Employee's last name
 
     Returns:
-        A dictionary containing:
-        - success: Boolean indicating if the operation was successful
-        - count: Number of profiles found
-        - message: Description of the result
-        - profiles: List of matching profiles, each containing:
-            - email_address: Employee's email
-            - first_name: Employee's first name
-            - last_name: Employee's last name
-            - strengths: List of 34 CliftonStrengths in ranked order
+        Dictionary with success status, count, message, and list of matching profiles.
     """
     db = get_db_client()
     return db.get_profile_by_name(first_name, last_name)
@@ -70,14 +60,7 @@ def get_all_profiles() -> Dict[str, Any]:
     Useful for getting an overview of the entire organization's strengths.
 
     Returns:
-        A dictionary containing:
-        - success: Boolean indicating if the operation was successful
-        - count: Total number of profiles in the database
-        - message: Description of the result
-        - profiles: List of all profiles, each containing:
-            - email_address: Employee's email
-            - first_name: Employee's first name
-            - last_name: Employee's last name
+        Dictionary with success status, count, message, and list of all profiles.
             - strengths: List of 34 CliftonStrengths in ranked order
     """
     db = get_db_client()
