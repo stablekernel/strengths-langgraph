@@ -11,15 +11,15 @@ from langgraph.graph import StateGraph
 from langgraph.prebuilt import ToolNode
 from langgraph.runtime import Runtime
 
-from react_agent.context import Context
-from react_agent.state import InputState, State
-from react_agent.tools import TOOLS
-from react_agent.utils import load_chat_model
+from strengths_agent.context import Context
+from strengths_agent.state import InputState, State
+from strengths_agent.tools import TOOLS
+from strengths_agent.utils import load_chat_model
 
 # Define the function that calls the model
 
 
-async def call_model(
+async def strengths_agent(
     state: State, runtime: Runtime[Context]
 ) -> Dict[str, List[AIMessage]]:
     """Call the LLM powering our "agent".
@@ -69,15 +69,15 @@ async def call_model(
 builder = StateGraph(State, input_schema=InputState, context_schema=Context)
 
 # Define the two nodes we will cycle between
-builder.add_node(call_model)
-builder.add_node("tools", ToolNode(TOOLS))
+builder.add_node(strengths_agent)
+builder.add_node("db_tools", ToolNode(TOOLS))
 
-# Set the entrypoint as `call_model`
+# Set the entrypoint as `strengths_agent`
 # This means that this node is the first one called
-builder.add_edge("__start__", "call_model")
+builder.add_edge("__start__", "strengths_agent")
 
 
-def route_model_output(state: State) -> Literal["__end__", "tools"]:
+def route_model_output(state: State) -> Literal["__end__", "db_tools"]:
     """Determine the next node based on the model's output.
 
     This function checks if the model's last message contains tool calls.
@@ -86,7 +86,7 @@ def route_model_output(state: State) -> Literal["__end__", "tools"]:
         state (State): The current state of the conversation.
 
     Returns:
-        str: The name of the next node to call ("__end__" or "tools").
+        str: The name of the next node to call ("__end__" or "db_tools").
     """
     last_message = state.messages[-1]
     if not isinstance(last_message, AIMessage):
@@ -97,20 +97,20 @@ def route_model_output(state: State) -> Literal["__end__", "tools"]:
     if not last_message.tool_calls:
         return "__end__"
     # Otherwise we execute the requested actions
-    return "tools"
+    return "db_tools"
 
 
-# Add a conditional edge to determine the next step after `call_model`
+# Add a conditional edge to determine the next step after `strengths_agent`
 builder.add_conditional_edges(
-    "call_model",
-    # After call_model finishes running, the next node(s) are scheduled
+    "strengths_agent",
+    # After strengths_agent finishes running, the next node(s) are scheduled
     # based on the output from route_model_output
     route_model_output,
 )
 
-# Add a normal edge from `tools` to `call_model`
+# Add a normal edge from `db_tools` to `strengths_agent`
 # This creates a cycle: after using tools, we always return to the model
-builder.add_edge("tools", "call_model")
+builder.add_edge("db_tools", "strengths_agent")
 
 # Compile the builder into an executable graph
-graph = builder.compile(name="ReAct Agent")
+graph = builder.compile(name="CliftonStrengths Agent")

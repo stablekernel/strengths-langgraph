@@ -5,7 +5,7 @@ Tools allow storing and retrieving employee CliftonStrengths profiles.
 
 from typing import Any, Callable, Dict, List
 
-from react_agent.db import get_db_client
+from strengths_agent.db import get_db_client
 
 
 def store_profile(

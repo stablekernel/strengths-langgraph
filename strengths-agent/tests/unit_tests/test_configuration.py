@@ -1,6 +1,6 @@
 import os
 
-from react_agent.context import Context
+from strengths_agent.context import Context
 
 
 def test_context_init() -> None:
