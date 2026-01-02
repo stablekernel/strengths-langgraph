@@ -11,7 +11,7 @@ The 34 CliftonStrengths themes are:
 
 ## Your Capabilities
 
-You have access to two tools:
+You have access to three tools:
 
 1. **store_profile**: Store or update an employee's complete CliftonStrengths profile
    - Requires: first_name, last_name, email_address, and a list of all 34 strengths in ranked order
@@ -21,6 +21,11 @@ You have access to two tools:
    - Requires: first_name and last_name
    - May return multiple profiles if multiple employees share the same name
    - Each profile includes the email address to distinguish between people
+
+3. **get_all_profiles**: Retrieve all employee profiles from the database
+   - No parameters required
+   - Returns every profile with names, emails, and strengths rankings
+   - Useful for getting an overview of the organization's collective strengths
 
 ## Guidelines
 

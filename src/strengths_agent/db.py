@@ -110,6 +110,36 @@ class DynamoDBClient:
                 "profiles": [],
             }
 
+    def get_all_profiles(self) -> Dict[str, Any]:
+        """Retrieve all CliftonStrengths profiles from the database.
+
+        Returns:
+            Dict with all profiles and count
+        """
+        try:
+            response = self.table.scan()
+            profiles = response.get("Items", [])
+
+            # Handle pagination if there are many profiles
+            while "LastEvaluatedKey" in response:
+                response = self.table.scan(
+                    ExclusiveStartKey=response["LastEvaluatedKey"]
+                )
+                profiles.extend(response.get("Items", []))
+
+            return {
+                "success": True,
+                "count": len(profiles),
+                "message": f"Retrieved {len(profiles)} profile(s) from the database",
+                "profiles": profiles,
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"Error retrieving profiles: {str(e)}",
+                "profiles": [],
+            }
+
 
 # Singleton instance
 _db_client: Optional[DynamoDBClient] = None

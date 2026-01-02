@@ -62,4 +62,26 @@ def get_profile(first_name: str, last_name: str) -> Dict[str, Any]:
     return db.get_profile_by_name(first_name, last_name)
 
 
-TOOLS: List[Callable[..., Any]] = [store_profile, get_profile]
+def get_all_profiles() -> Dict[str, Any]:
+    """Retrieve all CliftonStrengths profiles from the database.
+
+    This function retrieves every profile stored in the database, providing
+    a complete list of all employees and their CliftonStrengths assessments.
+    Useful for getting an overview of the entire organization's strengths.
+
+    Returns:
+        A dictionary containing:
+        - success: Boolean indicating if the operation was successful
+        - count: Total number of profiles in the database
+        - message: Description of the result
+        - profiles: List of all profiles, each containing:
+            - email_address: Employee's email
+            - first_name: Employee's first name
+            - last_name: Employee's last name
+            - strengths: List of 34 CliftonStrengths in ranked order
+    """
+    db = get_db_client()
+    return db.get_all_profiles()
+
+
+TOOLS: List[Callable[..., Any]] = [store_profile, get_profile, get_all_profiles]

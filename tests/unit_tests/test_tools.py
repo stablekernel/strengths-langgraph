@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from strengths_agent.tools import get_profile, store_profile
+from strengths_agent.tools import get_all_profiles, get_profile, store_profile
 
 
 class TestStoreProfileTool:
@@ -204,3 +204,104 @@ class TestGetProfileTool:
         result = get_profile("Test", "User")
 
         assert len(result["profiles"][0]["strengths"]) == 34
+
+
+class TestGetAllProfilesTool:
+    """Test suite for the get_all_profiles tool."""
+
+    @pytest.fixture
+    def mock_db_client(self):
+        """Create a mock database client."""
+        with patch("strengths_agent.tools.get_db_client") as mock_get_client:
+            mock_client = MagicMock()
+            mock_get_client.return_value = mock_client
+            yield mock_client
+
+    def test_get_all_profiles_success(self, mock_db_client):
+        """Test retrieving all profiles successfully."""
+        mock_db_client.get_all_profiles.return_value = {
+            "success": True,
+            "count": 3,
+            "message": "Retrieved 3 profile(s) from the database",
+            "profiles": [
+                {
+                    "email_address": "alice@example.com",
+                    "first_name": "Alice",
+                    "last_name": "Smith",
+                    "strengths": [f"Strength{i}" for i in range(1, 35)],
+                },
+                {
+                    "email_address": "bob@example.com",
+                    "first_name": "Bob",
+                    "last_name": "Jones",
+                    "strengths": ["Learner"] * 34,
+                },
+                {
+                    "email_address": "charlie@example.com",
+                    "first_name": "Charlie",
+                    "last_name": "Brown",
+                    "strengths": ["Achiever"] * 34,
+                },
+            ],
+        }
+
+        result = get_all_profiles()
+
+        assert result["success"] is True
+        assert result["count"] == 3
+        assert len(result["profiles"]) == 3
+        assert "Retrieved 3 profile" in result["message"]
+
+    def test_get_all_profiles_empty(self, mock_db_client):
+        """Test retrieving all profiles when database is empty."""
+        mock_db_client.get_all_profiles.return_value = {
+            "success": True,
+            "count": 0,
+            "message": "Retrieved 0 profile(s) from the database",
+            "profiles": [],
+        }
+
+        result = get_all_profiles()
+
+        assert result["success"] is True
+        assert result["count"] == 0
+        assert len(result["profiles"]) == 0
+
+    def test_get_all_profiles_error(self, mock_db_client):
+        """Test handling of retrieval errors."""
+        mock_db_client.get_all_profiles.return_value = {
+            "success": False,
+            "message": "Error retrieving profiles: Database unavailable",
+            "profiles": [],
+        }
+
+        result = get_all_profiles()
+
+        assert result["success"] is False
+        assert "error" in result["message"].lower()
+        assert result["profiles"] == []
+
+    def test_get_all_profiles_returns_complete_data(self, mock_db_client):
+        """Test that all profiles contain required fields."""
+        mock_db_client.get_all_profiles.return_value = {
+            "success": True,
+            "count": 1,
+            "message": "Retrieved 1 profile(s) from the database",
+            "profiles": [
+                {
+                    "email_address": "test@example.com",
+                    "first_name": "Test",
+                    "last_name": "User",
+                    "strengths": [f"Strength{i}" for i in range(1, 35)],
+                }
+            ],
+        }
+
+        result = get_all_profiles()
+
+        profile = result["profiles"][0]
+        assert "email_address" in profile
+        assert "first_name" in profile
+        assert "last_name" in profile
+        assert "strengths" in profile
+        assert len(profile["strengths"]) == 34

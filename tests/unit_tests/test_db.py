@@ -156,6 +156,93 @@ class TestDynamoDBClient:
         assert "Query failed" in result["message"]
         assert result["profiles"] == []
 
+    def test_get_all_profiles_success(self, db_client, mock_dynamodb_resource):
+        """Test retrieving all profiles successfully."""
+        _, mock_table = mock_dynamodb_resource
+        
+        mock_profiles = [
+            {
+                "email_address": "alice@example.com",
+                "first_name": "Alice",
+                "last_name": "Smith",
+                "strengths": [f"Strength{i}" for i in range(1, 35)],
+            },
+            {
+                "email_address": "bob@example.com",
+                "first_name": "Bob",
+                "last_name": "Jones",
+                "strengths": ["Learner"] * 34,
+            },
+        ]
+        mock_table.scan.return_value = {"Items": mock_profiles}
+
+        result = db_client.get_all_profiles()
+
+        assert result["success"] is True
+        assert result["count"] == 2
+        assert len(result["profiles"]) == 2
+        assert "Retrieved 2 profile" in result["message"]
+
+    def test_get_all_profiles_with_pagination(self, db_client, mock_dynamodb_resource):
+        """Test retrieving all profiles with pagination."""
+        _, mock_table = mock_dynamodb_resource
+        
+        first_batch = [
+            {
+                "email_address": "user1@example.com",
+                "first_name": "User",
+                "last_name": "One",
+                "strengths": ["Achiever"] * 34,
+            }
+        ]
+        second_batch = [
+            {
+                "email_address": "user2@example.com",
+                "first_name": "User",
+                "last_name": "Two",
+                "strengths": ["Learner"] * 34,
+            }
+        ]
+        
+        # Mock pagination
+        mock_table.scan.side_effect = [
+            {"Items": first_batch, "LastEvaluatedKey": {"email_address": "user1@example.com"}},
+            {"Items": second_batch},
+        ]
+
+        result = db_client.get_all_profiles()
+
+        assert result["success"] is True
+        assert result["count"] == 2
+        assert len(result["profiles"]) == 2
+        assert mock_table.scan.call_count == 2
+
+    def test_get_all_profiles_empty(self, db_client, mock_dynamodb_resource):
+        """Test retrieving all profiles when database is empty."""
+        _, mock_table = mock_dynamodb_resource
+        
+        mock_table.scan.return_value = {"Items": []}
+
+        result = db_client.get_all_profiles()
+
+        assert result["success"] is True
+        assert result["count"] == 0
+        assert len(result["profiles"]) == 0
+        assert "Retrieved 0 profile" in result["message"]
+
+    def test_get_all_profiles_error(self, db_client, mock_dynamodb_resource):
+        """Test error handling when scan fails."""
+        _, mock_table = mock_dynamodb_resource
+        
+        mock_table.scan.side_effect = Exception("Scan failed")
+
+        result = db_client.get_all_profiles()
+
+        assert result["success"] is False
+        assert "error" in result["message"].lower()
+        assert "Scan failed" in result["message"]
+        assert result["profiles"] == []
+
 
 class TestGetDBClient:
     """Test suite for the get_db_client singleton function."""
