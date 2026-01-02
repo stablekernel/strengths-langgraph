@@ -66,4 +66,6 @@ dev = [
     "anyio>=4.7.0",
     "langgraph-cli[inmem]>=0.4.10",
     "pytest>=8.3.5",
+    "pytest-mock>=3.12.0",
+    "moto[dynamodb]>=5.0.0",
 ]
