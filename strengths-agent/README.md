@@ -1,92 +1,191 @@
-# LangGraph ReAct Agent Template
+# CliftonStrengths Profile Agent
 
-[![CI](https://github.com/langchain-ai/react-agent/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/langchain-ai/react-agent/actions/workflows/unit-tests.yml)
-[![Open in - LangGraph Studio](https://img.shields.io/badge/Open_in-LangGraph_Studio-00324d.svg?logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4NS4zMzMiIGhlaWdodD0iODUuMzMzIiB2ZXJzaW9uPSIxLjAiIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHBhdGggZD0iTTEzIDcuOGMtNi4zIDMuMS03LjEgNi4zLTYuOCAyNS43LjQgMjQuNi4zIDI0LjUgMjUuOSAyNC41QzU3LjUgNTggNTggNTcuNSA1OCAzMi4zIDU4IDcuMyA1Ni43IDYgMzIgNmMtMTIuOCAwLTE2LjEuMy0xOSAxLjhtMzcuNiAxNi42YzIuOCAyLjggMy40IDQuMiAzLjQgNy42cy0uNiA0LjgtMy40IDcuNkw0Ny4yIDQzSDE2LjhsLTMuNC0zLjRjLTQuOC00LjgtNC44LTEwLjQgMC0xNS4ybDMuNC0zLjRoMzAuNHoiLz48cGF0aCBkPSJNMTguOSAyNS42Yy0xLjEgMS4zLTEgMS43LjQgMi41LjkuNiAxLjcgMS44IDEuNyAyLjcgMCAxIC43IDIuOCAxLjYgNC4xIDEuNCAxLjkgMS40IDIuNS4zIDMuMi0xIC42LS42LjkgMS40LjkgMS41IDAgMi43LS41IDIuNy0xIDAtLjYgMS4xLS44IDIuNi0uNGwyLjYuNy0xLjgtMi45Yy01LjktOS4zLTkuNC0xMi4zLTExLjUtOS44TTM5IDI2YzAgMS4xLS45IDIuNS0yIDMuMi0yLjQgMS41LTIuNiAzLjQtLjUgNC4yLjguMyAyIDEuNyAyLjUgMy4xLjYgMS41IDEuNCAyLjMgMiAyIDEuNS0uOSAxLjItMy41LS40LTMuNS0yLjEgMC0yLjgtMi44LS44LTMuMyAxLjYtLjQgMS42LS41IDAtLjYtMS4xLS4xLTEuNS0uNi0xLjItMS42LjctMS43IDMuMy0yLjEgMy41LS41LjEuNS4yIDEuNi4zIDIuMiAwIC43LjkgMS40IDEuOSAxLjYgMi4xLjQgMi4zLTIuMy4yLTMuMi0uOC0uMy0yLTEuNy0yLjUtMy4xLTEuMS0zLTMtMy4zLTMtLjUiLz48L3N2Zz4=)](https://langgraph-studio.vercel.app/templates/open?githubUrl=https://github.com/langchain-ai/react-agent)
+A LangGraph agent for managing employee CliftonStrengths profiles. This agent stores and retrieves complete CliftonStrengths assessments (all 34 themes) using AWS DynamoDB.
 
-This template showcases a [ReAct agent](https://arxiv.org/abs/2210.03629) implemented using [LangGraph](https://github.com/langchain-ai/langgraph), designed for [LangGraph Studio](https://github.com/langchain-ai/langgraph-studio). ReAct agents are uncomplicated, prototypical agents that can be flexibly extended to many tools.
+## What It Does
 
-![Graph view in LangGraph studio UI](./static/studio_ui.png)
+The CliftonStrengths Agent helps you:
 
-The core logic, defined in `src/react_agent/graph.py`, demonstrates a flexible ReAct agent that iteratively reasons about user queries and executes actions, showcasing the power of this approach for complex problem-solving tasks.
+- **Store profiles**: Save employee CliftonStrengths data (name, email, and all 34 ranked strengths)
+- **Retrieve profiles**: Look up profiles by first and last name
+- **Handle duplicates**: Returns all profiles when multiple employees share the same name
 
-## What it does
+The agent uses conversational AI to interact naturally while managing profile data in DynamoDB.
 
-The ReAct agent:
+## Quick Start
 
-1. Takes a user **query** as input
-2. Reasons about the query and decides on an action
-3. Executes the chosen action using available tools
-4. Observes the result of the action
-5. Repeats steps 2-4 until it can provide a final answer
+### Prerequisites
 
-By default, it's set up with a basic set of tools, but can be easily extended with custom tools to suit various use cases.
+- Python 3.11 or higher
+- AWS account with DynamoDB access
+- Anthropic API key (or OpenAI)
 
-## Getting Started
+### Setup
 
-Assuming you have already [installed LangGraph Studio](https://github.com/langchain-ai/langgraph-studio?tab=readme-ov-file#download), to set up:
-
-1. Create a `.env` file.
+1. **Install dependencies**
 
 ```bash
-cp .env.example .env
+# Activate virtual environment
+source /path/to/.venv/bin/activate
+
+# Install the package
+pip install -e .
 ```
 
-2. Define required API keys in your `.env` file.
+2. **Configure environment variables**
 
-The primary [search tool](./src/react_agent/tools.py) [^1] used is [Tavily](https://tavily.com/). Create an API key [here](https://app.tavily.com/sign-in).
+Create a `.env` file in the project root:
 
-### Setup Model
+```bash
+# Required: LLM API Key
+ANTHROPIC_API_KEY=your-anthropic-api-key
 
-The defaults values for `model` are shown below:
+# Required: AWS Configuration
+AWS_REGION=us-east-1
+AWS_PROFILE=your-aws-profile-name
+DYNAMODB_TABLE_NAME=profiles
 
-```yaml
-model: claude-sonnet-4-5-20250929
+# Optional: LangSmith Tracing
+LANGSMITH_API_KEY=your-langsmith-key
+LANGSMITH_PROJECT=strengths-agent
 ```
 
-Follow the instructions below to get set up, or pick one of the additional options.
+3. **Create DynamoDB table**
 
-#### Anthropic
+The `profiles` table requires:
+- Primary key: `email_address` (String)
+- Global Secondary Index: `name-index` with `first_name` (partition key) and `last_name` (sort key)
 
-To use Anthropic's chat models:
-
-1. Sign up for an [Anthropic API key](https://console.anthropic.com/) if you haven't already.
-2. Once you have your API key, add it to your `.env` file:
-
-```
-ANTHROPIC_API_KEY=your-api-key
-```
-#### OpenAI
-
-To use OpenAI's chat models:
-
-1. Sign up for an [OpenAI API key](https://platform.openai.com/signup).
-2. Once you have your API key, add it to your `.env` file:
-```
-OPENAI_API_KEY=your-api-key
+```bash
+aws dynamodb create-table \
+  --table-name profiles \
+  --attribute-definitions \
+    AttributeName=email_address,AttributeType=S \
+    AttributeName=first_name,AttributeType=S \
+    AttributeName=last_name,AttributeType=S \
+  --key-schema AttributeName=email_address,KeyType=HASH \
+  --global-secondary-indexes \
+    '[{"IndexName":"name-index","KeySchema":[{"AttributeName":"first_name","KeyType":"HASH"},{"AttributeName":"last_name","KeyType":"RANGE"}],"Projection":{"ProjectionType":"ALL"},"ProvisionedThroughput":{"ReadCapacityUnits":5,"WriteCapacityUnits":5}}]' \
+  --billing-mode PROVISIONED \
+  --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
 ```
 
-3. Customize whatever you'd like in the code.
-4. Open the folder LangGraph Studio!
+## Running the Agent
 
-## How to customize
+### Development Mode
 
-1. **Add new tools**: Extend the agent's capabilities by adding new tools in [tools.py](./src/react_agent/tools.py). These can be any Python functions that perform specific tasks.
-2. **Select a different model**: We default to Anthropic's Claude 3 Sonnet. You can select a compatible chat model using `provider/model-name` via runtime context. Example: `openai/gpt-4-turbo-preview`.
-3. **Customize the prompt**: We provide a default system prompt in [prompts.py](./src/react_agent/prompts.py). You can easily update this via context in the studio.
+```bash
+# Start the LangGraph development server
+langgraph dev
+```
 
-You can also quickly extend this template by:
+The agent will be available at:
+- **API**: http://127.0.0.1:2024
+- **Studio UI**: https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:2024
 
-- Modifying the agent's reasoning process in [graph.py](./src/react_agent/graph.py).
-- Adjusting the ReAct loop or adding additional steps to the agent's decision-making process.
+### Using the Agent
 
-## Development
+Once running, you can interact via the Studio UI:
 
-While iterating on your graph, you can edit past state and rerun your app from past states to debug specific nodes. Local changes will be automatically applied via hot reload. Try adding an interrupt before the agent calls tools, updating the default system message in `src/react_agent/context.py` to take on a persona, or adding additional nodes and edges!
+**Store a profile:**
+```
+Store my profile: John Doe, email john.doe@example.com, 
+strengths: Learner, Achiever, Strategic, Futuristic, Analytical, ...
+[include all 34 strengths in order]
+```
 
-Follow up requests will be appended to the same thread. You can create an entirely new thread, clearing previous history, using the `+` button in the top right.
+**Retrieve a profile:**
+```
+What are John Doe's strengths?
+```
 
-You can find the latest (under construction) docs on [LangGraph](https://github.com/langchain-ai/langgraph) here, including examples and other references. Using those guides can help you pick the right patterns to adapt here for your use case.
+## LangSmith Integration
 
-LangGraph Studio also integrates with [LangSmith](https://smith.langchain.com/) for more in-depth tracing and collaboration with teammates.
+The agent automatically integrates with [LangSmith](https://smith.langchain.com/) for tracing and debugging:
 
-[^1]: https://python.langchain.com/docs/concepts/#tools
+1. **Sign up** for a LangSmith account
+2. **Add API key** to your `.env` file (see Setup step 2)
+3. **View traces** in the LangSmith dashboard at https://smith.langchain.com/
+
+LangSmith provides:
+- Request/response traces for each agent interaction
+- Performance metrics and latency tracking
+- Debugging tools for tool calls and LLM responses
+- Team collaboration features
+
+## Running Tests
+
+The project includes comprehensive unit tests.
+
+```bash
+# Run all tests
+pytest
+
+# Run unit tests with verbose output
+pytest tests/unit_tests/ -v
+
+# Run specific test files
+pytest tests/unit_tests/test_db.py
+pytest tests/unit_tests/test_tools.py
+
+# Run with coverage report
+pytest --cov=src/strengths_agent
+```
+
+**Test coverage:**
+- `test_db.py` - DynamoDB client operations (10 tests)
+- `test_tools.py` - Agent tool functions (8 tests)
+- `test_configuration.py` - Context setup (3 tests)
+
+For more details, see [TESTING_EXPLAINED.md](./TESTING_EXPLAINED.md) or [tests/README.md](./tests/README.md).
+
+## Project Structure
+
+```
+src/strengths_agent/
+├── graph.py        # Main agent graph with strengths_agent and db_tools nodes
+├── tools.py        # DynamoDB tools (store_profile, get_profile)
+├── db.py           # DynamoDB client wrapper
+├── prompts.py      # System prompt with CliftonStrengths context
+├── context.py      # Configuration and context management
+└── state.py        # Agent state definitions
+
+tests/
+├── unit_tests/     # Unit tests (mocked AWS)
+└── integration_tests/  # Integration tests
+```
+
+## Architecture
+
+The agent follows a ReAct (Reasoning and Action) pattern:
+
+1. **strengths_agent node**: LLM reasons about the user's request
+2. **db_tools node**: Executes DynamoDB operations (store/retrieve profiles)
+3. **Routing**: Agent decides when to use tools or respond directly
+
+All interactions are traced in LangSmith when configured.
+
+## Development Tips
+
+- **Hot reload**: Code changes automatically apply when using `langgraph dev`
+- **Edit history**: Use Studio UI to edit past states and rerun from checkpoints
+- **Add tools**: Extend [tools.py](./src/strengths_agent/tools.py) with new functions
+- **Modify prompts**: Update [prompts.py](./src/strengths_agent/prompts.py) to change agent behavior
+
+## Troubleshooting
+
+**AWS credentials expired:**
+```bash
+aws sso login --profile your-profile-name
+```
+
+**Module not found:**
+```bash
+pip install -e .
+```
+
+**Tests failing:**
+```bash
+# Install test dependencies
+pip install pytest pytest-mock moto[dynamodb]
+```
