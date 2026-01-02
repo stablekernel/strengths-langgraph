@@ -1,29 +1,65 @@
-"""This module provides example tools for web scraping and search functionality.
+"""This module provides tools for managing CliftonStrengths profiles in DynamoDB.
 
-It includes a basic Tavily search function (as an example)
-
-These tools are intended as free examples to get started. For production use,
-consider implementing more robust and specialized tools tailored to your needs.
+Tools allow storing and retrieving employee CliftonStrengths profiles.
 """
 
-from typing import Any, Callable, List, Optional, cast
+from typing import Any, Callable, Dict, List
 
-from langchain_tavily import TavilySearch
-from langgraph.runtime import get_runtime
-
-from react_agent.context import Context
+from react_agent.db import get_db_client
 
 
-async def search(query: str) -> Optional[dict[str, Any]]:
-    """Search for general web results.
+def store_profile(
+    first_name: str,
+    last_name: str,
+    email_address: str,
+    strengths: List[str],
+) -> Dict[str, Any]:
+    """Store or update an employee's CliftonStrengths profile.
 
-    This function performs a search using the Tavily search engine, which is designed
-    to provide comprehensive, accurate, and trusted results. It's particularly useful
-    for answering questions about current events.
+    This function stores a complete CliftonStrengths profile in the database.
+    The profile includes the employee's name, email, and their ranked list
+    of all 34 CliftonStrengths themes.
+
+    Args:
+        first_name: Employee's first name
+        last_name: Employee's last name
+        email_address: Employee's unique email address
+        strengths: List of all 34 CliftonStrengths in ranked order (1-34)
+
+    Returns:
+        A dictionary containing:
+        - success: Boolean indicating if the operation was successful
+        - message: Description of the result
     """
-    runtime = get_runtime(Context)
-    wrapped = TavilySearch(max_results=runtime.context.max_search_results)
-    return cast(dict[str, Any], await wrapped.ainvoke({"query": query}))
+    db = get_db_client()
+    return db.store_profile(first_name, last_name, email_address, strengths)
 
 
-TOOLS: List[Callable[..., Any]] = [search]
+def get_profile(first_name: str, last_name: str) -> Dict[str, Any]:
+    """Retrieve an employee's CliftonStrengths profile by name.
+
+    This function looks up CliftonStrengths profiles by first and last name.
+    Note that multiple employees may share the same name, so this may return
+    multiple profiles. Each profile includes the employee's email address to
+    help distinguish between them.
+
+    Args:
+        first_name: Employee's first name
+        last_name: Employee's last name
+
+    Returns:
+        A dictionary containing:
+        - success: Boolean indicating if the operation was successful
+        - count: Number of profiles found
+        - message: Description of the result
+        - profiles: List of matching profiles, each containing:
+            - email_address: Employee's email
+            - first_name: Employee's first name
+            - last_name: Employee's last name
+            - strengths: List of 34 CliftonStrengths in ranked order
+    """
+    db = get_db_client()
+    return db.get_profile_by_name(first_name, last_name)
+
+
+TOOLS: List[Callable[..., Any]] = [store_profile, get_profile]
